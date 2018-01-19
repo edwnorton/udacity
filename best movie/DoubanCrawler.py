@@ -3,15 +3,8 @@ import requests
 import re
 from bs4 import BeautifulSoup
 import expanddouban
-#from tt import html
 import os
-def splice_tag(url_str, tag_list):
-    n = len(tag_list)
-    if n>0:
-        url_str = url_str + tag_list + ','
-    else:
-        pass
-    return url_str
+import csv
 """
 return a string corresponding to the URL of douban movie lists given category and location.
 """
@@ -70,16 +63,11 @@ def getMovies(category, location):
             patt = ".*制片国家/地区:</span> (.*)<br/>"
             location_name = re.search(patt, str(a)).group(1)
             location = location_name
-            print(a)
-            print(location)
             m = Movie(name, rate, location, category, info_link, cover_link)
             result = m.get_list()
             result_tag.append(result)
         m = result_tag
-        #print('m:', m)
-        #print('before:result', results_all)
         results_all = results_all + m
-        #print('after:result', results_all)
     return results_all
 """
 定义电影类
@@ -122,11 +110,60 @@ def csv_file(Movie_lists):
                 else:
                     f.write('\n')
     return
+def Movie_count():
+    """
+    按类型标签建立统计电影地区数量的字典
+    :return: movie_dic_tag and tag_count
+    """
+    global tag0_count, tag1_count, tag2_count
+    for i in movies:
+        if i[3] == category_tag[0]:
+            tag0_count += 1  # 悬疑类型电影总计数
+            if i[2] not in movie_dic_tag0:
+                movie_dic_tag0[i[2]] = 1  # 按地区计数
+            else:
+                movie_dic_tag0[i[2]] += 1
+        elif i[3] == category_tag[1]:
+            tag1_count += 1
+            if i[2] not in movie_dic_tag1:
+                movie_dic_tag1[i[2]] = 1
+            else:
+                movie_dic_tag1[i[2]] += 1
+        elif i[3] == category_tag[2]:
+            tag2_count += 1
+            if i[2] not in movie_dic_tag2:
+                movie_dic_tag2[i[2]] = 1
+            else:
+                movie_dic_tag2[i[2]] += 1
+        else:
+            pass
+    return
 
 category_tag = ['悬疑', '恐怖', '犯罪']
 location_tag = []
-print(getMovieUrl(category_tag, location_tag))
-print(getMovies(category_tag, location_tag))
 Movie_lists = getMovies(category_tag, location_tag)
 csv_file(Movie_lists)
-#print(Ab_Movie_csv)
+"""
+output.txt file
+"""
+with open('movie.csv', 'r') as f:
+    reader = csv.reader(f)
+    movies = list(reader)
+movie_dic_tag0 = {}
+movie_dic_tag1 = {}
+movie_dic_tag2 = {}
+tag0_count = 0
+tag1_count = 0
+tag2_count = 0
+Movie_count()
+#print(movie_dic_tag0, movie_dic_tag1, movie_dic_tag2)
+tag0_sorted = sorted(movie_dic_tag0.items(), key=lambda item: item[1], reverse=True)
+tag1_sorted = sorted(movie_dic_tag1.items(), key=lambda item: item[1], reverse=True)
+tag2_sorted = sorted(movie_dic_tag2.items(), key=lambda item: item[1], reverse=True)
+Tag_0 = "In the \"{}\" category, top three region are: 1.{}, 2.{}, 3.{}\nThe percentage of total movies in this category are:{:.1f}%, {:.1f}%, {:.1f}%".format(category_tag[0], tag0_sorted[0][0], tag0_sorted[1][0], tag0_sorted[2][0], 100*(tag0_sorted[0][1]/tag0_count), 100*(tag0_sorted[1][1]/tag0_count), 100*(tag0_sorted[2][1]/tag0_count))
+Tag_1 = "In the \"{}\" category, top three region are: 1.{}, 2.{}, 3.{}\nThe percentage of total movies in this category are:{:.1f}%, {:.1f}%, {:.1f}%".format(category_tag[1], tag1_sorted[0][0], tag1_sorted[1][0], tag1_sorted[2][0], 100*(tag1_sorted[0][1]/tag1_count), 100*(tag1_sorted[1][1]/tag1_count), 100*(tag1_sorted[2][1]/tag1_count))
+Tag_2 = "In the \"{}\" category, top three region are: 1.{}, 2.{}, 3.{}\nThe percentage of total movies in this category are:{:.1f}%, {:.1f}%, {:.1f}%".format(category_tag[2], tag2_sorted[0][0], tag2_sorted[1][0], tag2_sorted[2][0], 100*(tag2_sorted[0][1]/tag2_count), 100*(tag2_sorted[1][1]/tag2_count), 100*(tag2_sorted[2][1]/tag2_count))
+with open('output.txt', "w") as f:
+    f.write(Tag_0 + "\n")
+    f.write(Tag_1 + "\n")
+    f.write(Tag_2 + "\n")
